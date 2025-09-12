@@ -36,4 +36,4 @@ ENV IDRAC_HOST=local \
 # (If you *must*, use ARG and build-time secrets, not ENV.)
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD /app/healthcheck.sh
-ENTRYPOINT ["/app/Dell_iDRAC_fan_controller.sh"]
+ENTRYPOINT ["bash", "/app/Dell_iDRAC_fan_controller.sh"]
