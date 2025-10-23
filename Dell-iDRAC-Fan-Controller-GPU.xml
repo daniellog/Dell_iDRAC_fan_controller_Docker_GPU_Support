@@ -14,13 +14,13 @@
   <WebUI/>
   <TemplateURL>https://raw.githubusercontent.com/daniellog/Dell_iDRAC_fan_controller_Docker_GPU_Support/test/unraid-template.xml</TemplateURL>
   <Icon>https://raw.githubusercontent.com/daniellog/Dell_iDRAC_fan_controller_Docker_GPU_Support/test/dell-icon.png</Icon>
-  <ExtraParams>--device=/dev/ipmi0:/dev/ipmi0 --device=/dev/ipmi/0:/dev/ipmi/0 --cap-add=SYS_RAWIO --runtime=nvidia --gpus=all</ExtraParams>
+  <ExtraParams>--device=/dev/ipmi0:/dev/ipmi0 --device=/dev/ipmi/0:/dev/ipmi/0 --cap-add=SYS_RAWIO</ExtraParams>
   <PostArgs/>
   <CPUset/>
   <DateInstalled/>
   <DonateText/>
   <DonateLink/>
-  <Requires>Dell server with iDRAC interface and IPMI support. For GPU monitoring, NVIDIA or AMD GPU drivers must be installed on the host.</Requires>
+  <Requires>Dell server with iDRAC interface and IPMI support. For GPU monitoring: NVIDIA GPUs require adding '--runtime=nvidia --gpus=all' to Extra Parameters. AMD GPUs require adding device mappings for /dev/kfd and /dev/dri.</Requires>
   <Config Name="iDRAC Host" Target="IDRAC_HOST" Default="192.168.1.100" Mode="" Description="IP address or hostname of your Dell iDRAC interface. Use 'local' for local IPMI." Type="Variable" Display="always" Required="true" Mask="false"/>
   <Config Name="iDRAC Username" Target="IDRAC_USERNAME" Default="root" Mode="" Description="Username for iDRAC authentication" Type="Variable" Display="always" Required="true" Mask="false"/>
   <Config Name="iDRAC Password" Target="IDRAC_PASSWORD" Default="calvin" Mode="" Description="Password for iDRAC authentication" Type="Variable" Display="always" Required="true" Mask="true"/>
@@ -32,5 +32,7 @@
   <Config Name="Enable GPU Temperature Monitoring" Target="ENABLE_GPU_TEMPERATURE_MONITORING" Default="false" Mode="" Description="Enable GPU temperature monitoring (requires GPU drivers on host)" Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="GPU Temperature Threshold" Target="GPU_TEMPERATURE_THRESHOLD" Default="70" Mode="" Description="GPU temperature threshold in Celsius above which fans will increase" Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="Host Path 1" Target="/dev/ipmi0" Default="/dev/ipmi0" Mode="rw" Description="IPMI device for local iDRAC communication" Type="Device" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="AMD GPU Device 1 (KFD)" Target="/dev/kfd" Default="" Mode="rw" Description="AMD GPU kernel fusion driver device (leave empty if not using AMD GPU)" Type="Device" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="AMD GPU Device 2 (DRI)" Target="/dev/dri" Default="" Mode="rw" Description="AMD GPU DRI device (leave empty if not using AMD GPU)" Type="Device" Display="advanced" Required="false" Mask="false"/>
   <Config Name="AppData Config Path" Target="/config" Default="/mnt/user/appdata/dell-idrac-fan-controller" Mode="rw" Description="Container Path: /config" Type="Path" Display="advanced" Required="false" Mask="false"/>
 </Container>
