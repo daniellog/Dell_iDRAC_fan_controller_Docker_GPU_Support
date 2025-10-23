@@ -14,7 +14,7 @@
   <WebUI/>
   <TemplateURL>https://raw.githubusercontent.com/daniellog/Dell_iDRAC_fan_controller_Docker_GPU_Support/test/unraid-template.xml</TemplateURL>
   <Icon>https://raw.githubusercontent.com/daniellog/Dell_iDRAC_fan_controller_Docker_GPU_Support/test/dell-icon.png</Icon>
-  <ExtraParams>--device=/dev/ipmi0:/dev/ipmi0</ExtraParams>
+  <ExtraParams>--device=/dev/ipmi0:/dev/ipmi0 --device=/dev/ipmi/0:/dev/ipmi/0 --cap-add=SYS_RAWIO --runtime=nvidia --gpus=all</ExtraParams>
   <PostArgs/>
   <CPUset/>
   <DateInstalled/>
@@ -24,13 +24,13 @@
   <Config Name="iDRAC Host" Target="IDRAC_HOST" Default="192.168.1.100" Mode="" Description="IP address or hostname of your Dell iDRAC interface. Use 'local' for local IPMI." Type="Variable" Display="always" Required="true" Mask="false"/>
   <Config Name="iDRAC Username" Target="IDRAC_USERNAME" Default="root" Mode="" Description="Username for iDRAC authentication" Type="Variable" Display="always" Required="true" Mask="false"/>
   <Config Name="iDRAC Password" Target="IDRAC_PASSWORD" Default="calvin" Mode="" Description="Password for iDRAC authentication" Type="Variable" Display="always" Required="true" Mask="true"/>
-  <Config Name="Fan Speed %" Target="FAN_SPEED" Default="5" Mode="" Description="Fan speed percentage when temperatures are below threshold (5-100)" Type="Variable" Display="always" Required="false" Mask="false"/>
-  <Config Name="CPU Temperature Threshold" Target="CPU_TEMPERATURE_THRESHOLD" Default="50" Mode="" Description="CPU temperature threshold in Celsius above which fans will increase" Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="Fan Speed %" Target="FAN_SPEED" Default="40" Mode="" Description="Fan speed percentage when temperatures are below threshold (5-100)" Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="CPU Temperature Threshold" Target="CPU_TEMPERATURE_THRESHOLD" Default="70" Mode="" Description="CPU temperature threshold in Celsius above which fans will increase" Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="Check Interval" Target="CHECK_INTERVAL" Default="60" Mode="" Description="Temperature check interval in seconds" Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="Disable Third Party PCIe Card Response" Target="DISABLE_THIRD_PARTY_PCIE_CARD_DELL_DEFAULT_COOLING_RESPONSE" Default="false" Mode="" Description="Disable Dell's default cooling response for third-party PCIe cards" Type="Variable" Display="advanced" Required="false" Mask="false"/>
   <Config Name="Keep Third Party PCIe Card State on Exit" Target="KEEP_THIRD_PARTY_PCIE_CARD_COOLING_RESPONSE_STATE_ON_EXIT" Default="false" Mode="" Description="Keep the third-party PCIe card cooling response state when container exits" Type="Variable" Display="advanced" Required="false" Mask="false"/>
   <Config Name="Enable GPU Temperature Monitoring" Target="ENABLE_GPU_TEMPERATURE_MONITORING" Default="false" Mode="" Description="Enable GPU temperature monitoring (requires GPU drivers on host)" Type="Variable" Display="always" Required="false" Mask="false"/>
-  <Config Name="GPU Temperature Threshold" Target="GPU_TEMPERATURE_THRESHOLD" Default="80" Mode="" Description="GPU temperature threshold in Celsius above which fans will increase" Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="GPU Temperature Threshold" Target="GPU_TEMPERATURE_THRESHOLD" Default="70" Mode="" Description="GPU temperature threshold in Celsius above which fans will increase" Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="Host Path 1" Target="/dev/ipmi0" Default="/dev/ipmi0" Mode="rw" Description="IPMI device for local iDRAC communication" Type="Device" Display="advanced" Required="false" Mask="false"/>
   <Config Name="AppData Config Path" Target="/config" Default="/mnt/user/appdata/dell-idrac-fan-controller" Mode="rw" Description="Container Path: /config" Type="Path" Display="advanced" Required="false" Mask="false"/>
 </Container>
