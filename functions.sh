@@ -127,6 +127,95 @@ function get_Dell_server_model() {
 function CPU1_OVERHEATING() { [ $CPU1_TEMPERATURE -gt $CPU_TEMPERATURE_THRESHOLD ]; }
 function CPU2_OVERHEATING() { [ $CPU2_TEMPERATURE -gt $CPU_TEMPERATURE_THRESHOLD ]; }
 
+# Detect GPU type and availability
+# Returns: "nvidia", "amd", "none"
+function detect_gpu_type() {
+  # Check for NVIDIA GPU
+  if command -v nvidia-smi &> /dev/null; then
+    if nvidia-smi &> /dev/null; then
+      echo "nvidia"
+      return 0
+    fi
+  fi
+  
+  # Check for AMD GPU
+  if command -v rocm-smi &> /dev/null; then
+    if rocm-smi &> /dev/null; then
+      echo "amd"
+      return 0
+    fi
+  fi
+  
+  echo "none"
+  return 1
+}
+
+# Retrieve GPU temperatures based on GPU type
+# Usage: retrieve_gpu_temperatures
+# Sets global variables: GPU_TEMPERATURES (array), MAX_GPU_TEMPERATURE
+function retrieve_gpu_temperatures() {
+  GPU_TEMPERATURES=()
+  MAX_GPU_TEMPERATURE=0
+  
+  case "$GPU_TYPE" in
+    nvidia)
+      # Get all GPU temperatures from nvidia-smi
+      local temps
+      temps=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null)
+      if [ $? -eq 0 ] && [ -n "$temps" ]; then
+        while IFS= read -r temp; do
+          GPU_TEMPERATURES+=("$temp")
+          if [ "$temp" -gt "$MAX_GPU_TEMPERATURE" ]; then
+            MAX_GPU_TEMPERATURE=$temp
+          fi
+        done <<< "$temps"
+      fi
+      ;;
+    amd)
+      # Get all GPU temperatures from rocm-smi
+      local temps
+      temps=$(rocm-smi --showtemp --csv 2>/dev/null | grep -oP '\d+\.\d+' | cut -d. -f1)
+      if [ $? -eq 0 ] && [ -n "$temps" ]; then
+        while IFS= read -r temp; do
+          GPU_TEMPERATURES+=("$temp")
+          if [ "$temp" -gt "$MAX_GPU_TEMPERATURE" ]; then
+            MAX_GPU_TEMPERATURE=$temp
+          fi
+        done <<< "$temps"
+      fi
+      ;;
+    *)
+      MAX_GPU_TEMPERATURE=0
+      ;;
+  esac
+}
+
+# Check if any GPU is overheating
+function GPU_OVERHEATING() {
+  if [ "$ENABLE_GPU_TEMPERATURE_MONITORING" = "true" ] && [ "$GPU_TYPE" != "none" ]; then
+    [ $MAX_GPU_TEMPERATURE -gt $GPU_TEMPERATURE_THRESHOLD ]
+  else
+    return 1
+  fi
+}
+
+# Format GPU temperatures for display
+function format_gpu_temperatures() {
+  if [ "$ENABLE_GPU_TEMPERATURE_MONITORING" = "true" ] && [ "$GPU_TYPE" != "none" ] && [ ${#GPU_TEMPERATURES[@]} -gt 0 ]; then
+    local formatted=""
+    for temp in "${GPU_TEMPERATURES[@]}"; do
+      if [ -z "$formatted" ]; then
+        formatted="${temp}°C"
+      else
+        formatted="${formatted}, ${temp}°C"
+      fi
+    done
+    echo "$formatted"
+  else
+    echo "-"
+  fi
+}
+
 function print_error() {
   local -r ERROR_MESSAGE="$1"
   printf "/!\ Error /!\ %s." "$ERROR_MESSAGE" >&2

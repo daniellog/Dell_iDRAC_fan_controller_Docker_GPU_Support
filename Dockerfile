@@ -6,6 +6,13 @@ RUN apt-get update
 
 RUN apt-get install ipmitool -y
 
+# Install GPU monitoring tools
+# nvidia-smi for NVIDIA GPUs and rocm-smi for AMD GPUs
+# Also install pciutils for GPU detection
+RUN apt-get install -y pciutils && \
+    apt-get install -y nvidia-utils-535 || true && \
+    apt-get install -y rocm-smi || true
+
 ADD functions.sh /app/functions.sh
 ADD healthcheck.sh /app/healthcheck.sh
 ADD Dell_iDRAC_fan_controller.sh /app/Dell_iDRAC_fan_controller.sh
@@ -26,5 +33,7 @@ ENV CPU_TEMPERATURE_THRESHOLD 50
 ENV CHECK_INTERVAL 60
 ENV DISABLE_THIRD_PARTY_PCIE_CARD_DELL_DEFAULT_COOLING_RESPONSE false
 ENV KEEP_THIRD_PARTY_PCIE_CARD_COOLING_RESPONSE_STATE_ON_EXIT false
+ENV ENABLE_GPU_TEMPERATURE_MONITORING false
+ENV GPU_TEMPERATURE_THRESHOLD 80
 
 ENTRYPOINT ["./Dell_iDRAC_fan_controller.sh"]

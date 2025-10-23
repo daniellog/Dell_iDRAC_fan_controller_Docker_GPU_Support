@@ -8,6 +8,7 @@
   <li><a href="#requirements">Requirements</a></li>
   <li><a href="#supported-architectures">Supported architectures</a></li>
   <li><a href="#download-docker-image">Download Docker image</a></li>
+  <li><a href="#unraid-installation">Unraid Installation</a></li>
   <li><a href="#usage">Usage</a></li>
   <li><a href="#parameters">Parameters</a></li>
   <li><a href="#troubleshooting">Troubleshooting</a></li>
@@ -65,13 +66,72 @@ This Docker container is currently built and available for the following CPU arc
 <!-- DOWNLOAD DOCKER IMAGE -->
 ## Download Docker image
 
-- [Docker Hub](https://hub.docker.com/r/tigerblue77/dell_idrac_fan_controller)
+- [Docker Hub](https://hub.docker.com/r/daniellog/dell_idrac_fan_controller_docker_gpu_support)
 - [GitHub Containers Repository](https://github.com/tigerblue77/Dell_iDRAC_fan_controller_Docker/pkgs/container/dell_idrac_fan_controller)
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+<!-- UNRAID INSTALLATION -->
+## Unraid Installation
+
+This container includes a pre-built Unraid template for easy installation.
+
+### Template Repository Method (Recommended)
+
+1. In your Unraid web interface, go to the **Docker** tab
+2. Click **Add Container**
+3. Click **Template repositories** 
+4. Add this repository URL: `https://github.com/daniellog/Dell_iDRAC_fan_controller_Docker_GPU_Support`
+5. Click **Save**
+6. The template "Dell-iDRAC-Fan-Controller-GPU" will appear in your template list
+7. Click on the template and configure the settings as needed
+
+### Manual Installation
+
+1. Download the `unraid-template.xml` file from this repository
+2. In Unraid, go to **Docker** tab → **Add Container** → **Advanced View**
+3. Copy and paste the XML template content
+
+### Unraid Configuration
+
+The template provides an easy-to-use interface for all configuration options:
+
+**Required Settings:**
+- **iDRAC Host**: Your iDRAC IP address or `local` for local IPMI
+- **iDRAC Username**: Usually `root`
+- **iDRAC Password**: Your iDRAC password
+
+**GPU Monitoring (Optional):**
+- **Enable GPU Temperature Monitoring**: Set to `true` to enable GPU monitoring
+- **GPU Temperature Threshold**: Temperature threshold for GPU monitoring (default: 80°C)
+
+**Advanced Settings:**
+- All other fan control parameters are available in the template
+
+### Prerequisites for Unraid
+
+1. **IPMI Support**: Ensure your Dell server supports IPMI and the `/dev/ipmi0` device is available
+2. **GPU Drivers** (if using GPU monitoring):
+   - **NVIDIA**: Install the NVIDIA plugin from Community Applications
+   - **AMD**: Ensure ROCm drivers are available on your Unraid system
+
+For detailed configuration information, see the [UNRAID.md](UNRAID.md) file.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- USAGE -->
 ## Usage
+
+### GPU Temperature Monitoring (Unraid Compatible)
+
+This container now supports GPU temperature monitoring for both NVIDIA and AMD GPUs. When enabled, the container will monitor GPU temperatures and automatically switch to Dell's default fan control profile if any GPU exceeds the temperature threshold.
+
+**Requirements for GPU monitoring:**
+- For **NVIDIA GPUs**: The host must have NVIDIA drivers installed and the NVIDIA runtime must be available
+- For **AMD GPUs**: The host must have ROCm drivers installed
+- **For Unraid**: Pass through the GPU device(s) to the container (see examples below)
+
+### Usage Examples
 
 1. with local iDRAC:
 
@@ -85,11 +145,51 @@ docker run -d \
   -e CHECK_INTERVAL=<seconds between each check> \
   -e DISABLE_THIRD_PARTY_PCIE_CARD_DELL_DEFAULT_COOLING_RESPONSE=<true or false> \
   -e KEEP_THIRD_PARTY_PCIE_CARD_COOLING_RESPONSE_STATE_ON_EXIT=<true or false> \
+  -e ENABLE_GPU_TEMPERATURE_MONITORING=<true or false> \
+  -e GPU_TEMPERATURE_THRESHOLD=<decimal temperature threshold> \
   --device=/dev/ipmi0:/dev/ipmi0:rw \
-  tigerblue77/dell_idrac_fan_controller:latest
+  daniellog/dell_idrac_fan_controller_docker_gpu_support:latest
 ```
 
-2. with LAN iDRAC:
+**With NVIDIA GPU monitoring (Unraid):**
+```bash
+docker run -d \
+  --name Dell_iDRAC_fan_controller \
+  --restart=unless-stopped \
+  --runtime=nvidia \
+  -e IDRAC_HOST=local \
+  -e FAN_SPEED=<decimal or hexadecimal fan speed> \
+  -e CPU_TEMPERATURE_THRESHOLD=<decimal temperature threshold> \
+  -e GPU_TEMPERATURE_THRESHOLD=<decimal GPU temperature threshold> \
+  -e ENABLE_GPU_TEMPERATURE_MONITORING=true \
+  -e CHECK_INTERVAL=<seconds between each check> \
+  -e DISABLE_THIRD_PARTY_PCIE_CARD_DELL_DEFAULT_COOLING_RESPONSE=<true or false> \
+  -e KEEP_THIRD_PARTY_PCIE_CARD_COOLING_RESPONSE_STATE_ON_EXIT=<true or false> \
+  --device=/dev/ipmi0:/dev/ipmi0:rw \
+  --gpus all \
+  daniellog/dell_idrac_fan_controller_docker_gpu_support:latest
+```
+
+**With AMD GPU monitoring (Unraid):**
+```bash
+docker run -d \
+  --name Dell_iDRAC_fan_controller \
+  --restart=unless-stopped \
+  -e IDRAC_HOST=local \
+  -e FAN_SPEED=<decimal or hexadecimal fan speed> \
+  -e CPU_TEMPERATURE_THRESHOLD=<decimal temperature threshold> \
+  -e GPU_TEMPERATURE_THRESHOLD=<decimal GPU temperature threshold> \
+  -e ENABLE_GPU_TEMPERATURE_MONITORING=true \
+  -e CHECK_INTERVAL=<seconds between each check> \
+  -e DISABLE_THIRD_PARTY_PCIE_CARD_DELL_DEFAULT_COOLING_RESPONSE=<true or false> \
+  -e KEEP_THIRD_PARTY_PCIE_CARD_COOLING_RESPONSE_STATE_ON_EXIT=<true or false> \
+  --device=/dev/ipmi0:/dev/ipmi0:rw \
+  --device=/dev/kfd:/dev/kfd \
+  --device=/dev/dri:/dev/dri \
+  daniellog/dell_idrac_fan_controller_docker_gpu_support:latest
+```
+
+2. to use with LAN iDRAC:
 
 ```bash
 docker run -d \
@@ -103,7 +203,29 @@ docker run -d \
   -e CHECK_INTERVAL=<seconds between each check> \
   -e DISABLE_THIRD_PARTY_PCIE_CARD_DELL_DEFAULT_COOLING_RESPONSE=<true or false> \
   -e KEEP_THIRD_PARTY_PCIE_CARD_COOLING_RESPONSE_STATE_ON_EXIT=<true or false> \
-  tigerblue77/dell_idrac_fan_controller:latest
+  -e ENABLE_GPU_TEMPERATURE_MONITORING=<true or false> \
+  -e GPU_TEMPERATURE_THRESHOLD=<decimal temperature threshold> \
+  daniellog/dell_idrac_fan_controller_docker_gpu_support:latest
+```
+
+**With GPU monitoring and LAN iDRAC:**
+```bash
+docker run -d \
+  --name Dell_iDRAC_fan_controller \
+  --restart=unless-stopped \
+  --runtime=nvidia \
+  -e IDRAC_HOST=<iDRAC IP address> \
+  -e IDRAC_USERNAME=<iDRAC username> \
+  -e IDRAC_PASSWORD=<iDRAC password> \
+  -e FAN_SPEED=<decimal or hexadecimal fan speed> \
+  -e CPU_TEMPERATURE_THRESHOLD=<decimal temperature threshold> \
+  -e GPU_TEMPERATURE_THRESHOLD=<decimal GPU temperature threshold> \
+  -e ENABLE_GPU_TEMPERATURE_MONITORING=true \
+  -e CHECK_INTERVAL=<seconds between each check> \
+  -e DISABLE_THIRD_PARTY_PCIE_CARD_DELL_DEFAULT_COOLING_RESPONSE=<true or false> \
+  -e KEEP_THIRD_PARTY_PCIE_CARD_COOLING_RESPONSE_STATE_ON_EXIT=<true or false> \
+  --gpus all \
+  daniellog/dell_idrac_fan_controller_docker_gpu_support:latest
 ```
 
 `docker-compose.yml` examples:
@@ -115,7 +237,7 @@ version: '3.8'
 
 services:
   Dell_iDRAC_fan_controller:
-    image: tigerblue77/dell_idrac_fan_controller:latest
+    image: daniellog/dell_idrac_fan_controller_docker_gpu_support:latest
     container_name: Dell_iDRAC_fan_controller
     restart: unless-stopped
     environment:
@@ -125,8 +247,58 @@ services:
       - CHECK_INTERVAL=<seconds between each check>
       - DISABLE_THIRD_PARTY_PCIE_CARD_DELL_DEFAULT_COOLING_RESPONSE=<true or false>
       - KEEP_THIRD_PARTY_PCIE_CARD_COOLING_RESPONSE_STATE_ON_EXIT=<true or false>
+      - ENABLE_GPU_TEMPERATURE_MONITORING=<true or false>
+      - GPU_TEMPERATURE_THRESHOLD=<decimal temperature threshold>
     devices:
       - /dev/ipmi0:/dev/ipmi0:rw
+```
+
+**With NVIDIA GPU monitoring:**
+```yml
+version: '3.8'
+
+services:
+  Dell_iDRAC_fan_controller:
+    image: daniellog/dell_idrac_fan_controller_docker_gpu_support:latest
+    container_name: Dell_iDRAC_fan_controller
+    restart: unless-stopped
+    runtime: nvidia
+    environment:
+      - IDRAC_HOST=local
+      - FAN_SPEED=<decimal or hexadecimal fan speed>
+      - CPU_TEMPERATURE_THRESHOLD=<decimal temperature threshold>
+      - GPU_TEMPERATURE_THRESHOLD=<decimal GPU temperature threshold>
+      - ENABLE_GPU_TEMPERATURE_MONITORING=true
+      - CHECK_INTERVAL=<seconds between each check>
+      - DISABLE_THIRD_PARTY_PCIE_CARD_DELL_DEFAULT_COOLING_RESPONSE=<true or false>
+      - KEEP_THIRD_PARTY_PCIE_CARD_COOLING_RESPONSE_STATE_ON_EXIT=<true or false>
+      - NVIDIA_VISIBLE_DEVICES=all
+    devices:
+      - /dev/ipmi0:/dev/ipmi0:rw
+```
+
+**With AMD GPU monitoring:**
+```yml
+version: '3.8'
+
+services:
+  Dell_iDRAC_fan_controller:
+    image: daniellog/dell_idrac_fan_controller_docker_gpu_support:latest
+    container_name: Dell_iDRAC_fan_controller
+    restart: unless-stopped
+    environment:
+      - IDRAC_HOST=local
+      - FAN_SPEED=<decimal or hexadecimal fan speed>
+      - CPU_TEMPERATURE_THRESHOLD=<decimal temperature threshold>
+      - GPU_TEMPERATURE_THRESHOLD=<decimal GPU temperature threshold>
+      - ENABLE_GPU_TEMPERATURE_MONITORING=true
+      - CHECK_INTERVAL=<seconds between each check>
+      - DISABLE_THIRD_PARTY_PCIE_CARD_DELL_DEFAULT_COOLING_RESPONSE=<true or false>
+      - KEEP_THIRD_PARTY_PCIE_CARD_COOLING_RESPONSE_STATE_ON_EXIT=<true or false>
+    devices:
+      - /dev/ipmi0:/dev/ipmi0:rw
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
 ```
 
 2. to use with LAN iDRAC:
@@ -136,7 +308,7 @@ version: '3.8'
 
 services:
   Dell_iDRAC_fan_controller:
-    image: tigerblue77/dell_idrac_fan_controller:latest
+    image: daniellog/dell_idrac_fan_controller_docker_gpu_support:latest
     container_name: Dell_iDRAC_fan_controller
     restart: unless-stopped
     environment:
@@ -148,6 +320,8 @@ services:
       - CHECK_INTERVAL=<seconds between each check>
       - DISABLE_THIRD_PARTY_PCIE_CARD_DELL_DEFAULT_COOLING_RESPONSE=<true or false>
       - KEEP_THIRD_PARTY_PCIE_CARD_COOLING_RESPONSE_STATE_ON_EXIT=<true or false>
+      - ENABLE_GPU_TEMPERATURE_MONITORING=<true or false>
+      - GPU_TEMPERATURE_THRESHOLD=<decimal temperature threshold>
 ```
 
 <p align="right">(<a href="#top">back to top</a>)</p>
@@ -165,6 +339,14 @@ All parameters are optional as they have default values (including default iDRAC
 - `CHECK_INTERVAL` parameter is the time (in seconds) between each temperature check and potential profile change. **Default** value is 60(s).
 - `DISABLE_THIRD_PARTY_PCIE_CARD_DELL_DEFAULT_COOLING_RESPONSE` parameter is a boolean that allows to disable third-party PCIe card Dell default cooling response. **Default** value is false.
 - `KEEP_THIRD_PARTY_PCIE_CARD_COOLING_RESPONSE_STATE_ON_EXIT` parameter is a boolean that allows to keep the third-party PCIe card Dell default cooling response state upon exit. **Default** value is false, so that it resets the third-party PCIe card Dell default cooling response to Dell default.
+- `ENABLE_GPU_TEMPERATURE_MONITORING` parameter is a boolean that enables GPU temperature monitoring. When enabled, the container will monitor GPU temperatures and switch to Dell's default fan profile if any GPU exceeds the threshold. Supports both NVIDIA and AMD GPUs. **Default** value is false.
+- `GPU_TEMPERATURE_THRESHOLD` parameter is the GPU temperature threshold (in °C) beyond which the Dell fan mode will become active again (to protect the GPU hardware against overheat). Only used when `ENABLE_GPU_TEMPERATURE_MONITORING` is set to true. **Default** value is 80(°C).
+
+### GPU Monitoring Notes for Unraid:
+- **NVIDIA GPUs**: Requires `--runtime=nvidia` and `--gpus all` flags. Ensure the NVIDIA plugin is installed on your Unraid server.
+- **AMD GPUs**: Requires passing through `/dev/kfd` and `/dev/dri` devices. Ensure ROCm drivers are available on your Unraid host.
+- The container will automatically detect which GPU type is present and use the appropriate monitoring tool (nvidia-smi or rocm-smi).
+- Multiple GPUs are supported. The container monitors all detected GPUs and uses the highest temperature for threshold comparison.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

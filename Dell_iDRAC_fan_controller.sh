@@ -60,6 +60,22 @@ echo "iDRAC/IPMI host: $IDRAC_HOST"
 echo "Fan speed objective: $DECIMAL_FAN_SPEED%"
 echo "CPU temperature threshold: $CPU_TEMPERATURE_THRESHOLD°C"
 echo "Check interval: ${CHECK_INTERVAL}s"
+
+# Detect and log GPU information if GPU monitoring is enabled
+if [ "$ENABLE_GPU_TEMPERATURE_MONITORING" = "true" ]; then
+  GPU_TYPE=$(detect_gpu_type)
+  if [ "$GPU_TYPE" != "none" ]; then
+    echo "GPU monitoring: Enabled"
+    echo "GPU type detected: $GPU_TYPE"
+    echo "GPU temperature threshold: $GPU_TEMPERATURE_THRESHOLD°C"
+  else
+    echo "GPU monitoring: Enabled but no compatible GPU detected"
+    ENABLE_GPU_TEMPERATURE_MONITORING=false
+  fi
+else
+  echo "GPU monitoring: Disabled"
+  GPU_TYPE="none"
+fi
 echo ""
 
 # Define the interval for printing
@@ -93,6 +109,11 @@ while true; do
 
   retrieve_temperatures $IS_EXHAUST_TEMPERATURE_SENSOR_PRESENT $IS_CPU2_TEMPERATURE_SENSOR_PRESENT
 
+  # Retrieve GPU temperatures if GPU monitoring is enabled
+  if [ "$ENABLE_GPU_TEMPERATURE_MONITORING" = "true" ] && [ "$GPU_TYPE" != "none" ]; then
+    retrieve_gpu_temperatures
+  fi
+
   # Initialize a variable to store the comments displayed when the fan control profile changed
   COMMENT=" -"
   # Check if CPU 1 is overheating then apply Dell default dynamic fan control profile if true
@@ -117,6 +138,14 @@ while true; do
     if ! $IS_DELL_FAN_CONTROL_PROFILE_APPLIED; then
       IS_DELL_FAN_CONTROL_PROFILE_APPLIED=true
       COMMENT="CPU 2 temperature is too high, Dell default dynamic fan control profile applied for safety"
+    fi
+  # Check if GPU is overheating (if GPU monitoring is enabled)
+  elif GPU_OVERHEATING; then
+    apply_Dell_fan_control_profile
+
+    if ! $IS_DELL_FAN_CONTROL_PROFILE_APPLIED; then
+      IS_DELL_FAN_CONTROL_PROFILE_APPLIED=true
+      COMMENT="GPU temperature is too high ($MAX_GPU_TEMPERATURE°C), Dell default dynamic fan control profile applied for safety"
     fi
   else
     apply_user_fan_control_profile
@@ -143,11 +172,22 @@ while true; do
 
   # Print temperatures, active fan control profile and comment if any change happened during last time interval
   if [ $i -eq $TABLE_HEADER_PRINT_INTERVAL ]; then
-    echo "                     ------- Temperatures -------"
-    echo "    Date & time      Inlet  CPU 1  CPU 2  Exhaust          Active fan speed profile          Third-party PCIe card Dell default cooling response  Comment"
+    if [ "$ENABLE_GPU_TEMPERATURE_MONITORING" = "true" ] && [ "$GPU_TYPE" != "none" ]; then
+      echo "                     ------- Temperatures -------"
+      echo "    Date & time      Inlet  CPU 1  CPU 2  Exhaust  GPU(s)                 Active fan speed profile          Third-party PCIe card Dell default cooling response  Comment"
+    else
+      echo "                     ------- Temperatures -------"
+      echo "    Date & time      Inlet  CPU 1  CPU 2  Exhaust          Active fan speed profile          Third-party PCIe card Dell default cooling response  Comment"
+    fi
     i=0
   fi
-  printf "%19s  %3d°C  %3d°C  %3s°C  %5s°C  %40s  %51s  %s\n" "$(date +"%d-%m-%Y %T")" $INLET_TEMPERATURE $CPU1_TEMPERATURE "$CPU2_TEMPERATURE" "$EXHAUST_TEMPERATURE" "$CURRENT_FAN_CONTROL_PROFILE" "$THIRD_PARTY_PCIE_CARD_DELL_DEFAULT_COOLING_RESPONSE_STATUS" "$COMMENT"
+  
+  if [ "$ENABLE_GPU_TEMPERATURE_MONITORING" = "true" ] && [ "$GPU_TYPE" != "none" ]; then
+    GPU_TEMP_DISPLAY=$(format_gpu_temperatures)
+    printf "%19s  %3d°C  %3d°C  %3s°C  %5s°C  %-21s  %40s  %51s  %s\n" "$(date +"%d-%m-%Y %T")" $INLET_TEMPERATURE $CPU1_TEMPERATURE "$CPU2_TEMPERATURE" "$EXHAUST_TEMPERATURE" "$GPU_TEMP_DISPLAY" "$CURRENT_FAN_CONTROL_PROFILE" "$THIRD_PARTY_PCIE_CARD_DELL_DEFAULT_COOLING_RESPONSE_STATUS" "$COMMENT"
+  else
+    printf "%19s  %3d°C  %3d°C  %3s°C  %5s°C  %40s  %51s  %s\n" "$(date +"%d-%m-%Y %T")" $INLET_TEMPERATURE $CPU1_TEMPERATURE "$CPU2_TEMPERATURE" "$EXHAUST_TEMPERATURE" "$CURRENT_FAN_CONTROL_PROFILE" "$THIRD_PARTY_PCIE_CARD_DELL_DEFAULT_COOLING_RESPONSE_STATUS" "$COMMENT"
+  fi
   ((i++))
   wait $SLEEP_PROCESS_PID
 done
