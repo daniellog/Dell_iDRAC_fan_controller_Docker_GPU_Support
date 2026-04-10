@@ -171,10 +171,14 @@ All parameters are optional as they have default values (including default iDRAC
 <!-- TROUBLESHOOTING -->
 ## Troubleshooting
 
-If your server frequently switches back to the default Dell fan mode:
+### Your server frequently switches back to the default Dell fan mode:
 1. Check `Tcase` (case temperature) of your CPU on Intel Ark website and then set `CPU_TEMPERATURE_THRESHOLD` to a slightly lower value. Example with my CPUs ([Intel Xeon E5-2630L v2](https://www.intel.com/content/www/us/en/products/sku/75791/intel-xeon-processor-e52630l-v2-15m-cache-2-40-ghz/specifications.html)) : Tcase = 63°C, I set `CPU_TEMPERATURE_THRESHOLD` to 60(°C).
 2. If it's already good, adapt your `FAN_SPEED` value to increase the airflow and thus further decrease the temperature of your CPU(s)
 3. If neither increasing the fan speed nor increasing the threshold solves your problem, then it may be time to replace your thermal paste
+
+### You get `/!\ Your server isn't a Dell product. Exiting.` error on UnRAID OS
+
+- Run the image using usual `docker run` command instead of UnRAID Community Apps or Docker UI. [More informations here.](https://github.com/tigerblue77/Dell_iDRAC_fan_controller_Docker/issues/89#issuecomment-4166458799)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -191,6 +195,26 @@ Don't forget to give the project a star! Thanks again!
 3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+To test locally, use either :
+```bash
+docker build -t tigerblue77/dell_idrac_fan_controller:dev .
+docker run -d ...
+```
+or
+```bash
+export IDRAC_HOST=<iDRAC IP address>
+export IDRAC_USERNAME=<iDRAC username>
+export IDRAC_PASSWORD=<iDRAC password>
+export FAN_SPEED=<decimal or hexadecimal fan speed>
+export CPU_TEMPERATURE_THRESHOLD=<decimal temperature threshold>
+export CHECK_INTERVAL=<seconds between each check>
+export DISABLE_THIRD_PARTY_PCIE_CARD_DELL_DEFAULT_COOLING_RESPONSE=<true or false>
+export KEEP_THIRD_PARTY_PCIE_CARD_COOLING_RESPONSE_STATE_ON_EXIT=<true or false>
+
+chmod +x Dell_iDRAC_fan_controller.sh
+./Dell_iDRAC_fan_controller.sh
+```
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
